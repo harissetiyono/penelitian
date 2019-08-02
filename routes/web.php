@@ -18,6 +18,7 @@ Route::resource('/sentiment','SentimentController');
 Route::get('/sentiment/search/{term?}', 'SentimentController@index');
 Route::get('/test', 'SentimentController@test');
 Route::get('/update_all', 'SentimentController@update_all_sentiment');
+Route::post('/importExcel', 'SentimentController@importExcel');
 
 Route::get('/update_training', 'SentimentController@sentiment_training')->name('home');
 Route::post('/predict', 'SentimentController@sentiment_training')->name('home');

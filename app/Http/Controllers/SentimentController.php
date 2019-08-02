@@ -12,7 +12,9 @@ use Phpml\SupportVectorMachine\Kernel;
 use Phpml\ModelManager;
 use DB;
 use Storage;
+use Importer;
 use App\Sentiment;
+use Illuminate\Support\Facades\Input;
 
 ini_set('max_execution_time', 300); //300 seconds = 5 minutes
 ini_set('memory_limit', '-1');
@@ -106,7 +108,7 @@ class SentimentController extends Controller
       // $sentiment->update($request->all());
 
       $input = $request->all();
-      
+
       $preProcessing = $this->preProcessing($input['content']);
       $sentiment_predict = $this->sentiment_predict($preProcessing);
 
@@ -130,7 +132,12 @@ class SentimentController extends Controller
      */
     public function destroy($id)
     {
-        //
+      $sentiments = Sentiment::findOrfail($id);
+      if ($sentiments->delete()) {
+          return $this->_allSentiments();
+      } else {
+          return response()->json(425, ['delete' => 'Error deleting record']);
+      }
     }
 
     public function _allSentiments($term = null)
@@ -258,5 +265,62 @@ class SentimentController extends Controller
 
       // dd($paragraph);
       return $paragraph;
+    }
+
+    function csvToArray($filename = '', $delimiter = ';')
+    {
+        if (!file_exists($filename) || !is_readable($filename))
+            return false;
+
+        $header = null;
+        $data = array();
+        if (($handle = fopen($filename, 'r')) !== false)
+        {
+            while (($row = fgetcsv($handle, 1000, $delimiter)) !== false)
+            {
+                if (!$header)
+                    $header = $row;
+                else
+                    $data[] = array_combine($header, $row);
+            }
+            fclose($handle);
+        }
+
+        // dd($data);
+        return $data;
+    }
+
+
+    public function importExcel(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required'
+        ]);
+
+        if( Input::file('import_file') ) {
+            $path = Input::file('import_file')->getRealPath();
+        } else {
+            return back()->withErrors('');
+        }
+
+        $customerArr = $this->csvToArray($path);
+
+        for ($i = 0; $i < count($customerArr); $i ++)
+        {
+            $preProcessing = $this->preProcessing($customerArr[$i]['content']);
+            $sentiment_predict = $this->sentiment_predict($preProcessing);
+
+            $data[] = [
+              'name' => $customerArr[$i]['name'],
+              'content' => $customerArr[$i]['content'],
+              'source' => $customerArr[$i]['source'],
+              'date' => $customerArr[$i]['date'],
+              'sentiment' => $sentiment_predict[0],
+            ];
+        }
+
+        DB::table('sentiments')->insert($data);
+
+        return redirect('/');
     }
 }

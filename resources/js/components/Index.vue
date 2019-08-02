@@ -1,7 +1,8 @@
 <template>
   <div class="card">
     <div class="card-header">
-      <router-link to="create" class="btn btn-primary float-right">Add new Data</router-link>
+      <router-link to="create" class="btn btn-primary float-right"><i class="fa fa-plus"></i> Testimoni</router-link>
+      <button @click="showModal" class="btn btn-success">Import</button>
       <button v-on:click="update_all()" class="btn btn-success">Update Sentiment</button>
     </div>
     <div class="card-body">
@@ -50,7 +51,6 @@
 <script>
 import axios from 'axios';
 import Pagination from 'laravel-vue-pagination';
-import VSwitch from 'v-switch-case'
 
 export default {
   data() {
@@ -58,6 +58,8 @@ export default {
       sentiments: {},
       errors: [],
       search: '',
+      import_file:'',
+      show:''
     }
   },
 
@@ -93,7 +95,7 @@ export default {
         }
      },
 
-     refreshSentiment(post) {
+     refreshSentiment(sentiment) {
         this.sentiments = sentiment.data;
       },
 
@@ -110,18 +112,42 @@ export default {
           .then((result) => {
               if (result.value) {
                 axios.delete(`/sentiment/${id}`, { id })
-                .then(response => { this.refreshSentiment(response) });
-
-                this.$swal('Deleted!','Your file has been deleted.','success')
+                .then(response => {
+                  this.refreshSentiment(response),
+                  this.$swal('Deleted!','Your file has been deleted.','success')
+                });
               }
-
           })
-      },
+     },
 
-      update_all(){
+     update_all(){
+        let timerInterval
+        this.$swal.fire({
+          title: 'Auto close alert!',
+          html: 'Harap Tunggu hingga muncul keterangan berhasil !',
+          timer: 10000,
+          onBeforeOpen: () => {
+            this.$swal.showLoading()
+            timerInterval = setInterval(() => {
+              this.$swal.getContent().querySelector('strong')
+                .textContent = Swal.getTimerLeft()
+            }, 100)
+          },
+          onClose: () => {
+            clearInterval(timerInterval)
+          }
+        }).then((result) => {
+          if (
+            // Read more about handling dismissals
+            result.dismiss === Swal.DismissReason.timer
+          ) {
+            console.log('I was closed by the timer')
+          }
+        })
+
         axios.get('/update_all')
         .then(response => {
-          this.posts = response.data
+          this.sentiment = response.data
 
           this.$swal.fire({
             position: 'top',
@@ -134,7 +160,29 @@ export default {
         .catch(e => {
           this.errors.push(e)
         })
-      }
+      },
+
+     import(){
+       axios.post('/importExcel', this.file)
+       .then(
+         response => {
+           this.refreshSentiment(response),
+
+           this.$swal({
+             type: 'success',
+             name: 'Your work has been saved',
+             showConfirmButton: false,
+             timer: 1500
+           })
+         },
+       )
+       .catch(e => { this.errors.push(e) })
+       this.$router.push('/')
+     },
+
+    showModal() {
+      this.$modal.show('hello-world');
+     },
 
   }
 }

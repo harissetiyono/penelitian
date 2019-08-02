@@ -21,6 +21,8 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import VueSweetalert2 from 'vue-sweetalert2';
+import vmodal from 'vue-js-modal'
+
 
 import Index from './components/Index.vue';
 import Create from './components/Create.vue';
@@ -29,6 +31,7 @@ import Update from './components/Update.vue';
 
 Vue.use(VueRouter);
 Vue.use(VueSweetalert2);
+Vue.use(vmodal, { dynamic: true, injectModalsContainer: true })
 
 Vue.component('example-component', require('./components/ExampleComponent.vue').default);
 Vue.component('pagination', require('laravel-vue-pagination'));
